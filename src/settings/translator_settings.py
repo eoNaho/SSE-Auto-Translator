@@ -56,7 +56,6 @@ class TranslatorSettings(qtw.QWidget):
             self.api_key_entry.setDisabled(False)
         flayout.addRow(self.api_key_label, self.api_key_entry)
 
-        # Proxy Settings Group (only visible for Gemini)
         self.proxy_groupbox = qtw.QGroupBox(self.mloc.proxy_settings)
         self.proxy_groupbox.setVisible(False)
         flayout.addRow(self.proxy_groupbox)
@@ -156,9 +155,9 @@ class TranslatorSettings(qtw.QWidget):
         flayout.addRow(reset_confirmations_button)
 
     def _update_proxy_visibility(self, translator_name: str):
-        """Show proxy settings only for Gemini"""
-        is_gemini = translator_name == "Gemini"
-        self.proxy_groupbox.setVisible(is_gemini)
+        """Show proxy settings for translators that support proxy"""
+        is_proxy_supported = translator_name in ["Gemini", "DeepL Scraping"]
+        self.proxy_groupbox.setVisible(is_proxy_supported)
         
         # Enable/disable API key based on translator
         is_api_required = translator_name in ["DeepL", "Gemini"]
@@ -224,7 +223,7 @@ class TranslatorSettings(qtw.QWidget):
                                    f"{self.mloc.proxy_test_failed}\n\n{str(e)}")
         finally:
             # Restaurar socket original para proxies SOCKS
-            if parsed.scheme in ['socks4', 'socks5']:
+            if 'parsed' in locals() and parsed.scheme in ['socks4', 'socks5']:
                 try:
                     import socket
                     socket.socket = socket._orig_socket

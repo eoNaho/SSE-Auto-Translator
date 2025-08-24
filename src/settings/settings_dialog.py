@@ -138,10 +138,10 @@ class SettingsDialog(qtw.QDialog):
 
     def _validate_proxy_settings(self, translator_settings: dict) -> bool:
         """
-        Validates proxy settings for Gemini translator.
+        Validates proxy settings for translators that support proxy.
         Returns True if valid, False otherwise.
         """
-        if translator_settings["translator"] == "Gemini":
+        if translator_settings["translator"] in ["Gemini", "DeepL Scraping"]:
             proxy_config = translator_settings.get("proxy", {})
             proxy_url = proxy_config.get("url", "")
             
