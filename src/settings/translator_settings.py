@@ -56,8 +56,8 @@ class TranslatorSettings(qtw.QWidget):
 
         self.translator_box.currentTextChanged.connect(
             lambda text: (
-                self.api_key_entry.setEnabled(text == "DeepL"),
-                api_key_label.setEnabled(text == "DeepL"),
+                self.api_key_entry.setEnabled(text in ["DeepL", "Gemini"]),
+                api_key_label.setEnabled(text in ["DeepL", "Gemini"]),
             )
         )
 

@@ -173,7 +173,7 @@ class SettingsDialog(qtw.QDialog):
                         return
 
         if (
-            translator_settings["translator"] == "DeepL"
+            translator_settings["translator"] in ["DeepL", "Gemini"]
             and not translator_settings["api_key"]
         ):
             ErrorDialog(
