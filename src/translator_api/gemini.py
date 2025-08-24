@@ -24,13 +24,6 @@ from .translator import Translator
 
 log = logging.getLogger("GeminiTranslator")
 
-try:
-    import socks
-    import socket
-    socket._orig_socket = socket.socket
-except ImportError:
-    pass
-
 class GeminiTranslator(Translator):
     """
     Class for Google Gemini API with robust proxy and rate limiting support.
@@ -61,48 +54,72 @@ class GeminiTranslator(Translator):
         try:
             # Configure API key but NOT the proxy here
             genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
+            self.model = genai.GenerativeModel('gemini-2.5-pro')
             log.info("Gemini translator initialized successfully")
             
         except Exception as e:
             log.error(f"Failed to configure Gemini model: {e}")
             raise
 
+    def _create_proxied_session(self):
+        """Cria uma sessão requests com proxy configurado apenas para esta sessão"""
+        if not self.proxy_url:
+            return requests.Session()
+        
+        session = requests.Session()
+        proxies = {}
+        
+        parsed = urlparse(self.proxy_url)
+        
+        if self.proxy_username and self.proxy_password:
+            auth = f"{self.proxy_username}:{self.proxy_password}"
+            proxy_with_auth = f"{parsed.scheme}://{auth}@{parsed.netloc}{parsed.path}"
+            proxies = {
+                'http': proxy_with_auth,
+                'https': proxy_with_auth
+            }
+        else:
+            proxies = {
+                'http': self.proxy_url,
+                'https': self.proxy_url
+            }
+        
+        session.proxies.update(proxies)
+        return session
+
     @contextmanager
     def _proxy_context(self):
-        """Context manager para configurar variáveis de ambiente de proxy."""
+        """
+        Context manager que configura proxy apenas para a biblioteca Gemini
+        usando uma abordagem mais direta sem variáveis de ambiente globais
+        """
         if not self.proxy_url:
             yield
             return
 
-        original_env = dict(os.environ)
-        proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']
-        
         try:
+            original_env = dict(os.environ)
+            proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']
+            
             parsed_url = urlparse(self.proxy_url)
             
-            if parsed_url.scheme in ['socks4', 'socks5']:
-                socks_proxy = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
-                if self.proxy_username and self.proxy_password:
-                    socks_proxy = f"{parsed_url.scheme}://{self.proxy_username}:{self.proxy_password}@{parsed_url.netloc}{parsed_url.path}"
-                
-                os.environ['ALL_PROXY'] = socks_proxy
-                os.environ['all_proxy'] = socks_proxy
+            if self.proxy_username and self.proxy_password:
+                auth = f"{self.proxy_username}:{self.proxy_password}"
+                proxy_with_auth = f"{parsed_url.scheme}://{auth}@{parsed_url.netloc}{parsed_url.path}"
+                for var in proxy_vars:
+                    os.environ[var] = proxy_with_auth
             else:
-                if self.proxy_username and self.proxy_password:
-                    auth = f"{self.proxy_username}:{self.proxy_password}"
-                    proxy_with_auth = f"{parsed_url.scheme}://{auth}@{parsed_url.netloc}{parsed_url.path}"
-                    for var in proxy_vars:
-                        os.environ[var] = proxy_with_auth
-                else:
-                    for var in proxy_vars:
-                        os.environ[var] = self.proxy_url
+                for var in proxy_vars:
+                    os.environ[var] = self.proxy_url
             
-            log.info(f"Usando proxy: {parsed_url.scheme}://{parsed_url.netloc}")
+            log.info(f"Temporariamente usando proxy: {parsed_url.scheme}://{parsed_url.netloc}")
             yield
             
+        except Exception as e:
+            log.error(f"Erro ao configurar proxy: {e}")
+            yield
         finally:
-            for var in proxy_vars + ['ALL_PROXY', 'all_proxy']:
+            for var in proxy_vars:
                 if var in original_env:
                     os.environ[var] = original_env[var]
                 elif var in os.environ:
@@ -152,6 +169,7 @@ class GeminiTranslator(Translator):
                 top_p=0.8
             )
             
+            # Use the proxy context for this specific API call
             with self._proxy_context():
                 response = self.model.generate_content(
                     prompt,
@@ -190,6 +208,8 @@ class GeminiTranslator(Translator):
         result: dict[str, str] = {}
         unique_texts = list(set(texts))
 
+        # Mass translate is just a loop of single translates, so the context
+        # will be applied to each call within self.translate.
         for text in unique_texts:
             result[text] = self.translate(text, src, dst)
 
