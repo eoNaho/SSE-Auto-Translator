@@ -7,6 +7,7 @@ Attribution-NonCommercial-NoDerivatives 4.0 International.
 import logging
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 import jstyleson as json
 import qtpy.QtWidgets as qtw
@@ -39,8 +40,8 @@ class SettingsDialog(qtw.QDialog):
         self.setModal(True)
         self.setWindowTitle(self.mloc.settings)
         self.setObjectName("root")
-        self.setMinimumSize(1000, 650)
-        self.resize(1000, 650)
+        self.setMinimumSize(1000, 750)
+        self.resize(1000, 750)
 
         utils.apply_dark_title_bar(self)
 
@@ -135,6 +136,47 @@ class SettingsDialog(qtw.QDialog):
         else:
             self.accept()
 
+    def _validate_proxy_settings(self, translator_settings: dict) -> bool:
+        """
+        Validates proxy settings for Gemini translator.
+        Returns True if valid, False otherwise.
+        """
+        if translator_settings["translator"] == "Gemini":
+            proxy_config = translator_settings.get("proxy", {})
+            proxy_url = proxy_config.get("url", "")
+            
+            if proxy_url:
+                try:
+                    parsed = urlparse(proxy_url)
+                    if not all([parsed.scheme, parsed.netloc]):
+                        ErrorDialog(
+                            self,
+                            self.app,
+                            "URL de Proxy Inválida",
+                            "Por favor, insira uma URL de proxy válida no formato: http://proxy:porta ou socks5://proxy:porta"
+                        ).exec()
+                        return False
+                    
+                    if parsed.scheme not in ['http', 'https', 'socks4', 'socks5']:
+                        ErrorDialog(
+                            self,
+                            self.app,
+                            "Esquema de Proxy Não Suportado",
+                            f"Esquema '{parsed.scheme}' não é suportado. Use http, https, socks4 ou socks5."
+                        ).exec()
+                        return False
+                        
+                except Exception as e:
+                    ErrorDialog(
+                        self,
+                        self.app,
+                        "Erro na URL do Proxy",
+                        f"Erro ao analisar a URL do proxy: {str(e)}"
+                    ).exec()
+                    return False
+                    
+        return True
+
     def save(self):
         """
         Saves settings and closes dialog.
@@ -143,6 +185,9 @@ class SettingsDialog(qtw.QDialog):
         app_settings = self.app_settings.get_settings()
         user_settings = self.user_settings.get_settings()
         translator_settings = self.translator_settings.get_settings()
+
+        if not self._validate_proxy_settings(translator_settings):
+            return
 
         if app_settings["output_path"] is not None:
             if os.path.isdir(app_settings["output_path"]):

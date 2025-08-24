@@ -36,5 +36,19 @@
   "enable_interface_files": "Habilitar Arquivos de Interface (Data/Interface/*.txt)",
   "enable_scripts": "Habilitar Scripts Papyrus (Data/Scripts/*.pex)",
   "enable_textures": "Habilitar Texturas (Data/Textures/*)",
-  "enable_sound_files": "Habilitar Arquivos de Áudio (Data/Sound/*)"
+  "enable_sound_files": "Habilitar Arquivos de Áudio (Data/Sound/*)",
+  "proxy_settings": "Configurações de Proxy",
+  "proxy_url": "URL do Proxy",
+  "proxy_auth": "Autenticação do Proxy",
+  "username": "Usuário",
+  "password": "Senha",
+  "rate_limit_delay": "Atraso entre requisições (segundos)",
+  "max_retries": "Tentativas máximas",
+  "retry_delay": "Atraso de repetição (segundos)",
+  "test_proxy": "Testar Proxy",
+  "proxy_test_success": "Conexão com proxy bem-sucedida!",
+  "proxy_test_failed": "Falha na conexão com proxy",
+  "proxy_url_required": "URL do proxy é necessária para teste",
+  "proxy_config_info": "Configurações de proxy apenas para Gemini API",
+  "proxy_help_text": "Use proxy para evitar limitações de API. Formato: http://usuário:senha@proxy:porta ou socks5://proxy:porta"
 }

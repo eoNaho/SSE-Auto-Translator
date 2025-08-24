@@ -19,3 +19,4 @@ build
 dist
 *.spec
 versioninfo.txt
+proxies.json
