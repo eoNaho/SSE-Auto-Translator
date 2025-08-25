@@ -45,15 +45,22 @@ class TranslatorSettings(qtw.QWidget):
         self.translator_box.currentTextChanged.connect(self.on_change)
         flayout.addRow(self.mloc.translator, self.translator_box)
 
-        # API Key
-        # Store the label as an instance variable for reliable access
+        # API Key - Changed to QPlainTextEdit to support multiple keys
         self.api_key_label = qtw.QLabel(self.mloc.translator_api_key)
-        self.api_key_entry = KeyEntry()
+        self.api_key_entry = qtw.QPlainTextEdit()
+        self.api_key_entry.setMaximumHeight(100)
         self.api_key_entry.setDisabled(True)
         self.api_key_entry.textChanged.connect(self.on_change)
-        if self.app.translator_config["api_key"]:
-            self.api_key_entry.setText(self.app.translator_config["api_key"])
-            self.api_key_entry.setDisabled(False)
+
+        # Check if we have a list of keys or a single key (for backward compatibility)
+        api_keys = self.app.translator_config.get("api_keys", [])
+        if isinstance(api_keys, list):
+            api_key_text = "\n".join(api_keys)
+        else:
+            # If it's a string (old config), convert to list
+            api_key_text = api_keys if api_keys else ""
+        self.api_key_entry.setPlainText(api_key_text)
+
         flayout.addRow(self.api_key_label, self.api_key_entry)
 
         self.proxy_groupbox = qtw.QGroupBox(self.mloc.proxy_settings)
@@ -156,7 +163,7 @@ class TranslatorSettings(qtw.QWidget):
 
     def _update_proxy_visibility(self, translator_name: str):
         """Show proxy settings for translators that support proxy"""
-        is_proxy_supported = translator_name in ["Gemini", "DeepL Scraping"]
+        is_proxy_supported = translator_name in ["Gemini"]
         self.proxy_groupbox.setVisible(is_proxy_supported)
         
         # Enable/disable API key based on translator
@@ -237,7 +244,8 @@ class TranslatorSettings(qtw.QWidget):
         self.on_change_signal.emit()
 
     def get_settings(self):
-        api_key = self.api_key_entry.text() if self.api_key_entry.text() else None
+        raw_text = self.api_key_entry.toPlainText()
+        api_keys = [line.strip() for line in raw_text.splitlines() if line.strip()]
         
         proxy_config = {}
         if self.proxy_url_entry.text().strip():
@@ -249,7 +257,7 @@ class TranslatorSettings(qtw.QWidget):
 
         return {
             "translator": self.translator_box.currentText(),
-            "api_key": api_key,
+            "api_keys": api_keys,  # Now returns a list of API keys
             "proxy": proxy_config,
             "rate_limit_delay": self.rate_limit_spinbox.value(),
             "max_retries": self.retries_spinbox.value(),

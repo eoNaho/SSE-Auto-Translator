@@ -19,22 +19,23 @@ from .translator import Translator
 log = logging.getLogger("GeminiTranslator")
 
 class GeminiTranslator(Translator):
-    """
-    Class for Google Gemini API with robust proxy and rate limiting support.
-    """
-
     name = "Gemini"
 
     cache: dict[str, str] = {}
     last_request_time: float = 0
+    current_key_index = 0
 
     def __init__(self, app: MainApp):
         super().__init__(app)
 
-        self.api_key = app.translator_config.get("api_key")
-        if not self.api_key:
-            log.error("Gemini API key is not configured.")
-            raise ValueError("Gemini API key is required")
+        self.api_keys = app.translator_config.get("api_keys", [])
+        if not self.api_keys:
+            single_key = app.translator_config.get("api_key")
+            if single_key:
+                self.api_keys = [single_key]
+            else:
+                log.error("Gemini API key is not configured.")
+                raise ValueError("Gemini API key is required")
 
         proxy_config = app.translator_config.get("proxy", {})
         self.rate_limit_delay = app.translator_config.get("rate_limit_delay", 1.0)
@@ -46,17 +47,26 @@ class GeminiTranslator(Translator):
         self.proxy_password = proxy_config.get("password")
 
         try:
-            # Configure API key but NOT the proxy here
-            genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-pro')
+            genai.configure(api_key=self.api_keys[self.current_key_index])
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
             log.info("Gemini translator initialized successfully")
             
         except Exception as e:
             log.error(f"Failed to configure Gemini model: {e}")
             raise
 
+    def _rotate_api_key(self):
+        if len(self.api_keys) <= 1:
+            log.warning("Limite de cota atingido, mas não há chaves de API alternativas para rotacionar.")
+            raise exceptions.ResourceExhausted("No alternative API keys available")
+            
+        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+        new_key = self.api_keys[self.current_key_index]
+        genai.configure(api_key=new_key)
+        
+        log.info(f"Chave de API do Gemini rotacionada para o índice {self.current_key_index} ({len(self.api_keys)} chaves no total).")
+
     def _create_proxied_session(self):
-        """Cria uma sessão requests com proxy configurado apenas para esta sessão"""
         if not self.proxy_url:
             return requests.Session()
         
@@ -83,18 +93,14 @@ class GeminiTranslator(Translator):
 
     @contextmanager
     def _proxy_context(self):
-        """
-        Context manager que configura proxy apenas para a biblioteca Gemini
-        usando uma abordagem mais direta sem variáveis de ambiente globais
-        """
         if not self.proxy_url:
             yield
             return
 
+        original_env = dict(os.environ)
+        proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']
+        
         try:
-            original_env = dict(os.environ)
-            proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']
-            
             parsed_url = urlparse(self.proxy_url)
             
             if self.proxy_username and self.proxy_password:
@@ -106,11 +112,11 @@ class GeminiTranslator(Translator):
                 for var in proxy_vars:
                     os.environ[var] = self.proxy_url
             
-            log.info(f"Temporariamente usando proxy: {parsed_url.scheme}://{parsed_url.netloc}")
+            log.info(f"Temporarily using proxy: {parsed_url.scheme}://{parsed_url.netloc}")
             yield
             
         except Exception as e:
-            log.error(f"Erro ao configurar proxy: {e}")
+            log.error(f"Error configuring proxy: {e}")
             yield
         finally:
             for var in proxy_vars:
@@ -118,10 +124,9 @@ class GeminiTranslator(Translator):
                     os.environ[var] = original_env[var]
                 elif var in os.environ:
                     del os.environ[var]
-            log.info("Ambiente de proxy restaurado.")
+            log.info("Proxy environment restored.")
 
     def _enforce_rate_limit(self):
-        """Garante que respeitamos o rate limiting"""
         current_time = time.time()
         elapsed = current_time - self.last_request_time
         remaining_delay = self.rate_limit_delay - elapsed
@@ -139,9 +144,6 @@ class GeminiTranslator(Translator):
         )
     )
     def translate(self, text: str, src: str, dst: str) -> str:
-        """
-        Translates `text` from `src` language to `dst` language using Gemini.
-        """
         if not self.model:
             return f"Error: Gemini model not initialized."
 
@@ -163,7 +165,6 @@ class GeminiTranslator(Translator):
                 top_p=0.8
             )
             
-            # Use the proxy context for this specific API call
             with self._proxy_context():
                 response = self.model.generate_content(
                     prompt,
@@ -172,6 +173,16 @@ class GeminiTranslator(Translator):
                         'timeout': 30,
                     }
                 )
+            
+            if not response.parts:
+                finish_reason = response.candidates[0].finish_reason.name if response.candidates else "UNKNOWN"
+                log.warning(
+                    f"Gemini returned an empty response for '{text[:50]}...'. "
+                    f"Finish Reason: {finish_reason}"
+                )
+                if response.prompt_feedback.safety_ratings:
+                    log.warning(f"Safety Ratings: {response.prompt_feedback.safety_ratings}")
+                return text
 
             translated_text = response.text.strip()
             
@@ -183,9 +194,9 @@ class GeminiTranslator(Translator):
             return translated_text
 
         except exceptions.ResourceExhausted as e:
-            log.warning(f"Rate limit exceeded: {e}")
-            time.sleep(self.retry_delay * 2)
-            raise
+            log.warning(f"Rate limit exceeded (ResourceExhausted): {e}. Tentando rotacionar a chave de API.")
+            self._rotate_api_key()
+            raise e
 
         except exceptions.InvalidArgument as e:
             log.error(f"Invalid argument error: {e}")
@@ -196,23 +207,15 @@ class GeminiTranslator(Translator):
             return text
 
     def mass_translate(self, texts: list[str], src: str, dst: str) -> dict[str, str]:
-        """
-        Translates `texts` with optimized batch processing.
-        """
         result: dict[str, str] = {}
         unique_texts = list(set(texts))
 
-        # Mass translate is just a loop of single translates, so the context
-        # will be applied to each call within self.translate.
         for text in unique_texts:
             result[text] = self.translate(text, src, dst)
 
         return result
 
     def get_settings_widget(self) -> qtw.QWidget:
-        """
-        Returns settings widget for Gemini.
-        """
         widget = qtw.QWidget()
         layout = qtw.QVBoxLayout(widget)
         

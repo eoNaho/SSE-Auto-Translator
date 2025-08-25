@@ -141,7 +141,7 @@ class SettingsDialog(qtw.QDialog):
         Validates proxy settings for translators that support proxy.
         Returns True if valid, False otherwise.
         """
-        if translator_settings["translator"] in ["Gemini", "DeepL Scraping"]:
+        if translator_settings["translator"] in ["Gemini"]:
             proxy_config = translator_settings.get("proxy", {})
             proxy_url = proxy_config.get("url", "")
             
@@ -217,17 +217,18 @@ class SettingsDialog(qtw.QDialog):
                     if choice != qtw.QMessageBox.StandardButton.Yes:
                         return
 
-        if (
-            translator_settings["translator"] in ["DeepL", "Gemini"]
-            and not translator_settings["api_key"]
-        ):
-            ErrorDialog(
-                self,
-                self.app,
-                self.mloc.empty_translator_api_key,
-                self.mloc.empty_translator_api_key_text,
-            ).exec()
-            return
+        # Check for at least one API key for DeepL and Gemini
+        if translator_settings["translator"] in ["DeepL", "Gemini"]:
+            # For DeepL and Gemini, we now expect a list of API keys
+            api_keys = translator_settings.get("api_keys", [])
+            if not api_keys or (isinstance(api_keys, list) and not any(api_keys)):
+                ErrorDialog(
+                    self,
+                    self.app,
+                    self.mloc.empty_translator_api_key,
+                    self.mloc.empty_translator_api_key_text,
+                ).exec()
+                return
 
         path_file = self.app.data_path / "user" / "portable.txt"
         if user_settings["modinstance"] == "Portable":

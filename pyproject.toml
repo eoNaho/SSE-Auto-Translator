@@ -9,7 +9,7 @@ requires-python = "==3.11.*"
 dependencies = [
     "beautifulsoup4>=4.13.4",
     "bs4",
-    "cloudscraper>=1.2.71",
+    "cloudscraper",
     "comtypes",
     "cyhunspell",
     "deepl",
@@ -31,12 +31,9 @@ dependencies = [
     "qtpy",
     "rarfile",
     "requests",
-    "selenium>=4.35.0",
-    "selenium-stealth>=1.0.6",
     "semantic-version",
     "unrar",
     "virtual-glob",
-    "webdriver-manager>=4.0.2",
     "websocket-client",
 ]
 

@@ -8,11 +8,9 @@ from .deepl import DeepLTranslator
 from .google import GoogleTranslator
 from .translator import Translator
 from .gemini import GeminiTranslator
-from .deepl_scraper import DeepLScraperTranslator
 
 AVAILABLE_APIS: list[type[Translator]] = [
     GoogleTranslator,
     DeepLTranslator,
-    GeminiTranslator,
-    DeepLScraperTranslator, 
+    GeminiTranslator
 ]
