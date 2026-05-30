@@ -134,7 +134,10 @@ class NXMHandler(SingletonQObject):
 
             if start_uac:
                 try:
-                    pyuac.runAsAdmin([NXMHandler.reg_value, "--bind-nxm"])
+                    from cutleast_core_lib.core.utilities.exe_info import get_execution_info
+                    cmd, compiled = get_execution_info()
+                    base_cmd = cmd[:1] if compiled else cmd[:2]
+                    pyuac.runAsAdmin(base_cmd + ["--bind-nxm"])
                 except pywintypes.error:
                     self.log.warning("Failed to bind to NXM Links: Canceled by User.")
                     return

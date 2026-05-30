@@ -4,6 +4,7 @@ Copyright (c) Cutleast
 
 import logging
 import webbrowser
+from pathlib import Path
 from typing import Optional
 
 from cutleast_core_lib.core.utilities.scale import scale_value
@@ -12,8 +13,10 @@ from PySide6.QtWidgets import QPushButton, QTreeWidget, QTreeWidgetItem
 
 from core.downloader.file_download import FileDownload
 from core.translation_provider.nm_api.nm_api import NexusModsApi
+from core.translation_provider.nm_api.nxm_handler import NXMHandler
 from core.translation_provider.nm_api.nxm_id import NxmModId
 from core.utilities.progress_update import ProgressUpdate
+from ui.downloader.nexus_download_browser import NexusDownloadBrowserDialog
 from ui.utilities.icon_provider import IconProvider
 from ui.widgets.progress_widget import ProgressWidget
 
@@ -68,15 +71,53 @@ class DownloadItem(QTreeWidgetItem, QObject):  # type: ignore
         def open_download_page() -> None:
             assert isinstance(self.download.mod_details.mod_id, NxmModId)
 
+            mod_id: NxmModId = self.download.mod_details.mod_id
+
             url = NexusModsApi.create_nexus_mods_url(
-                self.download.mod_details.mod_id.nm_game_id,
-                self.download.mod_details.mod_id.mod_id,
-                self.download.mod_details.mod_id.file_id,
+                mod_id.nm_game_id,
+                mod_id.mod_id,
+                mod_id.file_id,
                 mod_manager=True,
             )
 
-            self.log.debug(f"Opening {url!r}...")
-            webbrowser.open(url)
+            self.log.debug(f"Opening internal browser for {url!r}...")
+
+            # Resolve data path for the persistent browser profile.
+            data_path: Optional[Path] = None
+            try:
+                from core.user_data.user_data_service import UserDataService
+                data_path = UserDataService.get().get_data_path()
+            except Exception:
+                self.log.warning(
+                    "UserDataService not available; browser profile will be in-memory."
+                )
+
+            dialog = NexusDownloadBrowserDialog(
+                url=url,
+                expected_game=mod_id.nm_game_id,
+                expected_mod_id=mod_id.mod_id,
+                expected_file_id=mod_id.file_id or 0,
+                data_path=data_path,
+                parent=parent,
+            )
+            dialog.nxm_captured.connect(NXMHandler.get().request_signal.emit)
+
+            def on_rejected() -> None:
+                """Cancel the blocked worker when the user closes the dialog."""
+                self.log.info("Download browser closed without capturing NXM link.")
+                # Signal the provider to stop waiting for the NXM link
+                from core.translation_provider.provider_manager import ProviderManager
+                try:
+                    nm_api = ProviderManager.get_provider(NexusModsApi)
+                    nm_api.cancel_pending_download()
+                except Exception as ex:
+                    self.log.warning(
+                        f"Could not cancel pending download: {ex}"
+                    )
+
+            dialog.rejected.connect(on_rejected)
+
+            dialog.exec()
 
             button.setIcon(IconProvider.get_qta_icon("fa5s.check"))
 

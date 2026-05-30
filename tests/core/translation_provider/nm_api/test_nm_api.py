@@ -39,7 +39,7 @@ class TestNexusModsApi(CoreTest):
             (
                 True,  # translation version starts with original mod version
                 True,  # translation_timestamp > original_mod_timestamp
-                1759338600,  # translation_timestamp
+                int(to_timestamp("01.10.2025 19:10")),  # translation_timestamp
             ),
         ),
     ]

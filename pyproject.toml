@@ -9,7 +9,7 @@ requires-python = ">=3.12"
 dependencies = [
     "beautifulsoup4",
     "chunspell",
-    "cloudscraper",
+    "curl-cffi>=0.15.0",
     "cutleast-core-lib",
     "deepl",
     "googletrans",

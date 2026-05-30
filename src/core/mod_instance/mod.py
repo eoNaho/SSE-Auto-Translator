@@ -44,7 +44,7 @@ class Mod(BaseMod):
     def mod_id(self) -> Optional[NxmModId]:
         """The mod id of the mod identifying it at Nexus Mods."""
 
-        if self.metadata.mod_id:
+        if self.metadata.mod_id and self.metadata.mod_id > 0:
             return NxmModId(
                 mod_id=self.metadata.mod_id,
                 file_id=self.metadata.file_id,

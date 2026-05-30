@@ -219,7 +219,7 @@ class Provider:
             bool: Whether the mod id is valid
         """
 
-        if not mod_id.mod_id or (isinstance(mod_id, NxmModId) and mod_id.file_id == 0):
+        if not mod_id.mod_id or mod_id.mod_id < 0 or (isinstance(mod_id, NxmModId) and mod_id.file_id == 0):
             return False
 
         if check_online:

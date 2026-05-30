@@ -52,3 +52,13 @@ class NoOriginalModFound(InstallationFailedError):
         return QApplication.translate(
             "exceptions", "No original mod found for the translation!"
         )
+
+
+class DownloadCancelledError(DownloadFailedError):
+    """
+    Exception raised when the user cancels a pending non-premium download.
+    """
+
+    @override
+    def getLocalizedMessage(self) -> str:
+        return QApplication.translate("exceptions", "Download cancelled by user.")

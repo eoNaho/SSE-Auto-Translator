@@ -5,15 +5,16 @@ Attribution-NonCommercial-NoDerivatives 4.0 International.
 """
 
 import re
+import threading
 import urllib.parse
 import webbrowser
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
-from queue import Queue
+from queue import Empty, Queue
 from typing import Any, Optional, TypeVar, override
 from uuid import uuid4
 
 import bs4
-import cloudscraper as cs
+from curl_cffi import requests as req_cffi
 import jstyleson as json
 import requests as req
 import websocket
@@ -29,6 +30,7 @@ from ..exceptions import (
     ApiNoServerAvailableError,
     UnexpectedResponseError,
 )
+from core.utilities.exceptions import DownloadCancelledError
 from ..mod_details import ModDetails
 from ..mod_id import ModId
 from ..provider_api import ProviderApi
@@ -94,10 +96,22 @@ class NexusModsApi(ProviderApi):
     __rem_dreq: int = 0
     """Remaining API requests at current day"""
 
-    __scraper: Optional[cs.CloudScraper] = None
+    __scraper: Optional[req_cffi.Session] = None
     """
     Scraper for circumventing Cloudflare protection when scraping the HTML of a
     modpage for translations.
+    """
+
+    __cancel_download: threading.Event
+    """
+    Event used to cancel a pending non-premium download from the UI thread.
+
+    .. note::
+        This is an instance-level flag.  Because the default configuration uses
+        a single download worker thread (``download_thread_num = 1``) there is
+        at most one pending non-premium request per :class:`NexusModsApi`
+        instance, so the flag is safe in practice.  With multiple workers the
+        flag would be shared across downloads – a known limitation.
     """
 
     def set_api_key(self, key: str) -> None:
@@ -553,7 +567,7 @@ class NexusModsApi(ProviderApi):
             list[int]: List of translation mod ids
         """
 
-        if not mod_id:
+        if not mod_id or mod_id < 0:
             raise ProviderApi.raise_mod_not_found_error(NxmModId(mod_id=mod_id))
 
         url: str = f"https://www.nexusmods.com/{game_id}/mods/{mod_id}"
@@ -568,14 +582,22 @@ class NexusModsApi(ProviderApi):
         res: req.Response
         if cached is None:
             if self.__scraper is None:
-                self.__scraper = cs.CloudScraper()
+                self.__scraper = req_cffi.Session(impersonate="chrome")
 
             headers = {
                 "User-Agent": self.user_agent,
             }
 
-            res = self.__scraper.get(url, headers=headers)
-            self.handle_status_code(url, res.status_code)
+            cffi_res = self.__scraper.get(url, headers=headers)
+            self.handle_status_code(url, cffi_res.status_code)
+
+            # Convert curl_cffi response to standard requests.Response for pickling
+            res = req.Response()
+            res.status_code = cffi_res.status_code
+            res._content = cffi_res.content
+            res.headers = req.structures.CaseInsensitiveDict(cffi_res.headers)
+            res.url = cffi_res.url
+
             Cache.save_to_cache(cache_file_path, res)
         else:
             res = cached
@@ -725,6 +747,17 @@ class NexusModsApi(ProviderApi):
         except KeyError as ex:
             raise UnexpectedResponseError(path, res.content.decode()) from ex
 
+    def cancel_pending_download(self) -> None:
+        """
+        Signals any currently-blocked :meth:`request_download` call to abort.
+
+        Thread-safe.  Has no effect when no non-premium download is pending.
+        """
+
+        if hasattr(self, "_NexusModsApi__cancel_download"):
+            self.__cancel_download.set()
+            self.log.info("Cancellation requested for pending non-premium download.")
+
     @override
     def request_download(self, mod_id: ModId) -> str:
         """
@@ -737,6 +770,9 @@ class NexusModsApi(ProviderApi):
 
         Returns:
             str: Direct download url
+
+        Raises:
+            DownloadCancelledError: When the user cancels the pending free download.
         """
 
         if not isinstance(mod_id, NxmModId):
@@ -755,11 +791,14 @@ class NexusModsApi(ProviderApi):
         else:
             self.log.info("Waiting for non-premium download...")
 
+            # Reset cancellation state for this download attempt
+            self.__cancel_download = threading.Event()
+
             # Use a queue to get the download details in a thread-safe way
             queue: Queue[NxmRequest] = Queue(1)
 
-            def process_url(url: str) -> None:
-                nxm_request: NxmRequest = NxmRequest.from_url(url)
+            def process_url(nxm_url: str) -> None:
+                nxm_request: NxmRequest = NxmRequest.from_url(nxm_url)
 
                 if (
                     nxm_request.mod_id == mod_id.mod_id
@@ -769,7 +808,19 @@ class NexusModsApi(ProviderApi):
                     queue.put(nxm_request)
 
             NXMHandler.get().request_signal.connect(process_url)
-            nxm_request: NxmRequest = queue.get()
+
+            # Poll in a loop so that a cancellation request from the UI thread
+            # can unblock this worker thread cleanly.
+            nxm_request: Optional[NxmRequest] = None
+            while nxm_request is None:
+                try:
+                    nxm_request = queue.get(timeout=0.5)
+                except Empty:
+                    if self.__cancel_download.is_set():
+                        NXMHandler.get().request_signal.disconnect(process_url)
+                        self.log.info("Non-premium download cancelled by user.")
+                        raise DownloadCancelledError()
+
             NXMHandler.get().request_signal.disconnect(process_url)
 
             key: str = nxm_request.key
