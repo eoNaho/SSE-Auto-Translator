@@ -39,7 +39,7 @@ class TranslatorConfig(BaseConfig):
     llm_timeout: int = 120
     """Timeout in seconds for local LLM translator API requests."""
 
-    llm_temperature: float = 0.1
+    llm_temperature: float = 0.0
     """Sampling temperature for local LLM translator API requests."""
 
     show_confirmation_dialogs: bool = True

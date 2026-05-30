@@ -8,7 +8,7 @@ import pytest
 from cutleast_core_lib.test.utils import Utils
 from cutleast_core_lib.ui.widgets.enum_selector import EnumSelector
 from cutleast_core_lib.ui.widgets.key_edit import KeyLineEdit
-from PySide6.QtWidgets import QCheckBox
+from PySide6.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QLineEdit, QSpinBox
 from pytestqt.qtbot import QtBot
 
 from core.config.translator_config import TranslatorConfig
@@ -28,6 +28,19 @@ class TestTranslatorSettings(BaseTest):
         EnumSelector[TranslatorApi],
     )
     API_KEY_ENTRY: tuple[str, type[KeyLineEdit]] = "api_key_entry", KeyLineEdit
+    LLM_BASE_URL_ENTRY: tuple[str, type[QLineEdit]] = (
+        "llm_base_url_entry",
+        QLineEdit,
+    )
+    LLM_MODEL_SELECTOR: tuple[str, type[QComboBox]] = (
+        "llm_model_selector",
+        QComboBox,
+    )
+    LLM_TIMEOUT_BOX: tuple[str, type[QSpinBox]] = "llm_timeout_box", QSpinBox
+    LLM_TEMPERATURE_BOX: tuple[str, type[QDoubleSpinBox]] = (
+        "llm_temperature_box",
+        QDoubleSpinBox,
+    )
 
     SHOW_CONFIRMATIONS_BOX: tuple[str, type[QCheckBox]] = (
         "show_confirmations_box",
@@ -60,6 +73,18 @@ class TestTranslatorSettings(BaseTest):
         api_key_entry: KeyLineEdit = Utils.get_private_field(
             translator_settings, *TestTranslatorSettings.API_KEY_ENTRY
         )
+        llm_base_url_entry: QLineEdit = Utils.get_private_field(
+            translator_settings, *TestTranslatorSettings.LLM_BASE_URL_ENTRY
+        )
+        llm_model_selector: QComboBox = Utils.get_private_field(
+            translator_settings, *TestTranslatorSettings.LLM_MODEL_SELECTOR
+        )
+        llm_timeout_box: QSpinBox = Utils.get_private_field(
+            translator_settings, *TestTranslatorSettings.LLM_TIMEOUT_BOX
+        )
+        llm_temperature_box: QDoubleSpinBox = Utils.get_private_field(
+            translator_settings, *TestTranslatorSettings.LLM_TEMPERATURE_BOX
+        )
 
         show_confirmations_box: QCheckBox = Utils.get_private_field(
             translator_settings, *TestTranslatorSettings.SHOW_CONFIRMATIONS_BOX
@@ -71,6 +96,18 @@ class TestTranslatorSettings(BaseTest):
             translator_config.translator == TranslatorApi.DeepL
         )
         assert (api_key_entry.text().strip() or None) == translator_config.api_key
+        assert llm_base_url_entry.isEnabled() == (
+            translator_config.translator
+            in {
+                TranslatorApi.Ollama,
+                TranslatorApi.LMStudio,
+                TranslatorApi.LlamaCpp,
+            }
+        )
+        assert llm_base_url_entry.text() == translator_config.llm_base_url
+        assert llm_model_selector.currentText() == translator_config.llm_model
+        assert llm_timeout_box.value() == translator_config.llm_timeout
+        assert llm_temperature_box.value() == translator_config.llm_temperature
 
         assert (
             show_confirmations_box.isChecked()

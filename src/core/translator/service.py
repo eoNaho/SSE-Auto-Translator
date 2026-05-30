@@ -9,6 +9,7 @@ from core.config.translator_config import TranslatorConfig
 from .apis import TranslatorApi
 from .deepl import DeepLTranslator
 from .google import GoogleTranslator
+from .local_llm import LMStudioTranslator, LlamaCppTranslator, OllamaTranslator
 from .translator import Translator
 
 
@@ -39,6 +40,9 @@ class TranslatorService(Singleton):
         translators: dict[TranslatorApi, type[Translator]] = {
             TranslatorApi.Google: GoogleTranslator,
             TranslatorApi.DeepL: DeepLTranslator,
+            TranslatorApi.Ollama: OllamaTranslator,
+            TranslatorApi.LMStudio: LMStudioTranslator,
+            TranslatorApi.LlamaCpp: LlamaCppTranslator,
         }
 
         translator_cls: type[Translator] = translators[

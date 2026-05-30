@@ -22,6 +22,7 @@ dependencies = [
     "pyuac",
     "pywin32",
     "pyzmq",
+    "requests",
     "sse-bsa",
     "sse-plugin-interface",
     "websocket-client",
