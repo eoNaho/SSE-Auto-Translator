@@ -13,3 +13,12 @@ class TranslatorApi(Enum):
 
     DeepL = "DeepL"
     """DeepL translator API (requires API key)."""
+
+    Ollama = "Ollama"
+    """Local Ollama API."""
+
+    LMStudio = "LM Studio"
+    """Local LM Studio OpenAI-compatible API."""
+
+    LlamaCpp = "llama.cpp"
+    """Local llama.cpp OpenAI-compatible API."""

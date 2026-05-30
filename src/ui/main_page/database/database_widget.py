@@ -60,7 +60,7 @@ class DatabaseWidget(QTabWidget):
         )
         self.addTab(self.__translations_tab, self.tr("Translations"))
 
-        self.__downloads_tab = DownloadsTab(download_manager, provider)
+        self.__downloads_tab = DownloadsTab(download_manager, provider, app_config)
         self.addTab(self.__downloads_tab, self.tr("Downloads"))
 
         self.__translations_tab.edit_translation_requested.connect(

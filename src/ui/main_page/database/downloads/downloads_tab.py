@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from core.config.app_config import AppConfig
 from core.downloader.download_manager import DownloadManager
 from core.downloader.file_download import FileDownload
 from core.translation_provider.nm_api.nxm_handler import NXMHandler
@@ -33,6 +34,7 @@ class DownloadsTab(QWidget):
 
     download_manager: DownloadManager
     provider: Provider
+    app_config: AppConfig
 
     __download_items: list[DownloadItem]
 
@@ -45,11 +47,13 @@ class DownloadsTab(QWidget):
         self,
         download_manager: DownloadManager,
         provider: Provider,
+        app_config: AppConfig,
     ) -> None:
         super().__init__()
 
         self.download_manager = download_manager
         self.provider = provider
+        self.app_config = app_config
 
         self.__download_items = []
 
@@ -115,7 +119,7 @@ class DownloadsTab(QWidget):
         self.__downloads_widget.header().resizeSection(2, 300)
 
     def __add_download(self, download: FileDownload) -> None:
-        download_item = DownloadItem(download)
+        download_item = DownloadItem(download, self.app_config)
         download_item.finished_signal.connect(self.__remove_download_item)
         download_item.remove_signal.connect(self.__remove_download_item)
         download_item.remove_signal.connect(

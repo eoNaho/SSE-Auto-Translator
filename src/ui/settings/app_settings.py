@@ -55,6 +55,7 @@ class AppSettings(SettingsPage[AppConfig]):
     __download_threads_box: QSpinBox
     __worker_threads_box: QSpinBox
     __bind_nxm_checkbox: QCheckBox
+    __auto_click_nexus_checkbox: QCheckBox
     __use_spell_check_checkbox: QCheckBox
     __auto_import_checkbox: QCheckBox
     __auto_create_db_translations_checkbox: QCheckBox
@@ -271,6 +272,20 @@ class AppSettings(SettingsPage[AppConfig]):
         )
         behavior_flayout.addRow(self.__bind_nxm_checkbox)
 
+        self.__auto_click_nexus_checkbox = QCheckBox(
+            self.tr(
+                'Automatically click "Mod Manager Download" in the embedded Nexus '
+                "Mods browser for non-premium downloads"
+            )
+        )
+        self.__auto_click_nexus_checkbox.setChecked(
+            self._initial_config.auto_click_nexus_download
+        )
+        self.__auto_click_nexus_checkbox.stateChanged.connect(
+            lambda _: self.changed_signal.emit()
+        )
+        behavior_flayout.addRow(self.__auto_click_nexus_checkbox)
+
         self.__use_spell_check_checkbox = QCheckBox(
             self.tr("Enable spell checking in translation editor")
         )
@@ -339,6 +354,9 @@ class AppSettings(SettingsPage[AppConfig]):
         config.download_thread_num = self.__download_threads_box.value()
         config.worker_thread_num = self.__worker_threads_box.value()
         config.auto_bind_nxm = self.__bind_nxm_checkbox.isChecked()
+        config.auto_click_nexus_download = (
+            self.__auto_click_nexus_checkbox.isChecked()
+        )
         config.use_spell_check = self.__use_spell_check_checkbox.isChecked()
         config.auto_import_translations = self.__auto_import_checkbox.isChecked()
         config.auto_create_database_translations = (

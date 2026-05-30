@@ -3,7 +3,6 @@ Copyright (c) Cutleast
 """
 
 import logging
-import webbrowser
 from pathlib import Path
 from typing import Optional
 
@@ -11,6 +10,7 @@ from cutleast_core_lib.core.utilities.scale import scale_value
 from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import QPushButton, QTreeWidget, QTreeWidgetItem
 
+from core.config.app_config import AppConfig
 from core.downloader.file_download import FileDownload
 from core.translation_provider.nm_api.nm_api import NexusModsApi
 from core.translation_provider.nm_api.nxm_handler import NXMHandler
@@ -43,13 +43,15 @@ class DownloadItem(QTreeWidgetItem, QObject):  # type: ignore
     log: logging.Logger = logging.getLogger("DownloadItem")
 
     download: FileDownload
+    app_config: AppConfig
     current_widget: Optional[ProgressWidget | QPushButton] = None
 
-    def __init__(self, download: FileDownload) -> None:
+    def __init__(self, download: FileDownload, app_config: AppConfig) -> None:
         QObject.__init__(self)
         super().__init__()
 
         self.download = download
+        self.app_config = app_config
         self.__update_signal.connect(
             self.__update_progress, Qt.ConnectionType.QueuedConnection
         )
@@ -98,6 +100,7 @@ class DownloadItem(QTreeWidgetItem, QObject):  # type: ignore
                 expected_mod_id=mod_id.mod_id,
                 expected_file_id=mod_id.file_id or 0,
                 data_path=data_path,
+                auto_click=self.app_config.auto_click_nexus_download,
                 parent=parent,
             )
             dialog.nxm_captured.connect(NXMHandler.get().request_signal.emit)

@@ -37,6 +37,12 @@ class AppConfig(BaseAppConfig):
     auto_bind_nxm: bool = False
     """Automatically bind to "Mod Manager Download" Buttons on Nexus Mods on Startup"""
 
+    auto_click_nexus_download: bool = True
+    """
+    Automatically click the download button in the embedded Nexus Mods browser for
+    non-premium downloads.
+    """
+
     use_spell_check: bool = True
     """Use spell checker in translation editor"""
 

@@ -58,6 +58,10 @@ class TestAppSettings(BaseTest):
 
     CONFIDENCE_BOX: tuple[str, type[QDoubleSpinBox]] = "confidence_box", QDoubleSpinBox
     BIND_NXM_CHECKBOX: tuple[str, type[QCheckBox]] = "bind_nxm_checkbox", QCheckBox
+    AUTO_CLICK_NEXUS_CHECKBOX: tuple[str, type[QCheckBox]] = (
+        "auto_click_nexus_checkbox",
+        QCheckBox,
+    )
     USE_SPELL_CHECK_CHECKBOX: tuple[str, type[QCheckBox]] = (
         "use_spell_check_checkbox",
         QCheckBox,
@@ -123,6 +127,9 @@ class TestAppSettings(BaseTest):
         bind_nxm_checkbox: QCheckBox = Utils.get_private_field(
             app_settings, *TestAppSettings.BIND_NXM_CHECKBOX
         )
+        auto_click_nexus_checkbox: QCheckBox = Utils.get_private_field(
+            app_settings, *TestAppSettings.AUTO_CLICK_NEXUS_CHECKBOX
+        )
         use_spell_check_checkbox: QCheckBox = Utils.get_private_field(
             app_settings, *TestAppSettings.USE_SPELL_CHECK_CHECKBOX
         )
@@ -149,6 +156,10 @@ class TestAppSettings(BaseTest):
 
         assert confidence_box.value() == app_config.detector_confidence
         assert bind_nxm_checkbox.isChecked() == app_config.auto_bind_nxm
+        assert (
+            auto_click_nexus_checkbox.isChecked()
+            == app_config.auto_click_nexus_download
+        )
         assert use_spell_check_checkbox.isChecked() == app_config.use_spell_check
         assert auto_import_checkbox.isChecked() == app_config.auto_import_translations
         assert (

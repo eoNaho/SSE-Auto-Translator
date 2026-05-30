@@ -25,6 +25,40 @@ from core.translation_provider.nm_api.nxm_handler import NXMHandler
 from core.translation_provider.nm_api.nxm_request import NxmRequest
 
 
+JS_AUTO_CLICK_NEXUS_DOWNLOAD: str = """
+(function autoClickNexusDownload() {
+    var attempts = 0;
+    var maxAttempts = 50;
+
+    function clickFirst(selector) {
+        var element = document.querySelector(selector);
+        if (element) {
+            element.click();
+            return true;
+        }
+        return false;
+    }
+
+    function tryClick() {
+        if (clickFirst('a[href^="nxm://"]')) {
+            return;
+        }
+
+        if (clickFirst('a.btn-mod, a[data-download="nxm"]')) {
+            return;
+        }
+
+        attempts++;
+        if (attempts < maxAttempts) {
+            setTimeout(tryClick, 200);
+        }
+    }
+
+    tryClick();
+})();
+"""
+
+
 class _NexusWebPage(QWebEnginePage):
     """
     Custom QWebEnginePage that intercepts ``nxm://`` navigation requests so
@@ -45,13 +79,15 @@ class _NexusWebPage(QWebEnginePage):
     @override
     def acceptNavigationRequest(
         self,
-        url: QUrl,
+        url: QUrl | str,
         nav_type: QWebEnginePage.NavigationType,
         is_main_frame: bool,
     ) -> bool:
-        if url.scheme() == "nxm":
-            self.log.debug(f"Intercepted nxm:// URL: {url.toString()!r}")
-            self.nxm_intercepted.emit(url.toString())
+        qurl = QUrl(url) if isinstance(url, str) else url
+
+        if qurl.scheme() == "nxm":
+            self.log.debug(f"Intercepted nxm:// URL: {qurl.toString()!r}")
+            self.nxm_intercepted.emit(qurl.toString())
             return False  # block the navigation
 
         return super().acceptNavigationRequest(url, nav_type, is_main_frame)
@@ -81,6 +117,8 @@ class NexusDownloadBrowserDialog(QDialog):
         data_path (Optional[Path]):
             Root data path used to persist cookies/login across sessions.
             When ``None`` an in-memory (non-persistent) profile is used.
+        auto_click (bool):
+            Whether to auto-click the Nexus Mods download button after page load.
         parent (Optional[QWidget]): Qt parent widget.
     """
 
@@ -109,6 +147,7 @@ class NexusDownloadBrowserDialog(QDialog):
     __expected_mod_id: int
     __expected_file_id: int
     __target_url: str
+    __auto_click: bool
 
     def __init__(
         self,
@@ -117,6 +156,7 @@ class NexusDownloadBrowserDialog(QDialog):
         expected_mod_id: int,
         expected_file_id: int,
         data_path: Optional[Path] = None,
+        auto_click: bool = True,
         parent: Optional[QWidget] = None,
     ) -> None:
         super().__init__(parent)
@@ -125,6 +165,7 @@ class NexusDownloadBrowserDialog(QDialog):
         self.__expected_game = expected_game
         self.__expected_mod_id = expected_mod_id
         self.__expected_file_id = expected_file_id
+        self.__auto_click = auto_click
 
         self.__profile = self.__create_profile(data_path)
         self.__web_page = _NexusWebPage(self.__profile, self)
@@ -182,6 +223,7 @@ class NexusDownloadBrowserDialog(QDialog):
 
         self.__web_view = QWebEngineView(self.__web_page, self)
         self.__web_view.titleChanged.connect(self.__on_title_changed)
+        self.__web_view.loadFinished.connect(self.__on_load_finished)
         vlayout.addWidget(self.__web_view, stretch=1)
 
         vlayout.addWidget(self.__build_footer())
@@ -201,6 +243,16 @@ class NexusDownloadBrowserDialog(QDialog):
         reload_action = toolbar.addAction(self.tr("↺"))
         reload_action.setToolTip(self.tr("Reload"))
         reload_action.triggered.connect(lambda: self.__web_view.reload())
+
+        toolbar.addSeparator()
+
+        auto_click_action = toolbar.addAction(self.tr("Auto-click"))
+        auto_click_action.setToolTip(
+            self.tr("Automatically click the Nexus Mods download button when it appears")
+        )
+        auto_click_action.setCheckable(True)
+        auto_click_action.setChecked(self.__auto_click)
+        auto_click_action.toggled.connect(self.__set_auto_click)
 
         toolbar.addSeparator()
 
@@ -241,6 +293,15 @@ class NexusDownloadBrowserDialog(QDialog):
             self.setWindowTitle(
                 self.tr("Nexus Mods – Mod Manager Download") + f" – {title}"
             )
+
+    def __set_auto_click(self, enabled: bool) -> None:
+        self.__auto_click = enabled
+        if enabled:
+            self.__web_page.runJavaScript(JS_AUTO_CLICK_NEXUS_DOWNLOAD)
+
+    def __on_load_finished(self, ok: bool) -> None:
+        if ok and self.__auto_click:
+            self.__web_page.runJavaScript(JS_AUTO_CLICK_NEXUS_DOWNLOAD)
 
     def __open_in_external_browser(self) -> None:
         current_url = self.__web_view.url().toString()
@@ -326,6 +387,7 @@ class NexusDownloadBrowserDialog(QDialog):
         expected_mod_id: int,
         expected_file_id: int,
         data_path: Optional[Path] = None,
+        auto_click: bool = True,
         parent: Optional[QWidget] = None,
     ) -> bool:
         """
@@ -346,6 +408,7 @@ class NexusDownloadBrowserDialog(QDialog):
             expected_mod_id=expected_mod_id,
             expected_file_id=expected_file_id,
             data_path=data_path,
+            auto_click=auto_click,
             parent=parent,
         )
         dialog.nxm_captured.connect(NXMHandler.get().request_signal.emit)

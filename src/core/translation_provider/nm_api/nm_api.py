@@ -20,6 +20,7 @@ import requests as req
 import websocket
 from cutleast_core_lib.core.cache.cache import Cache
 from pydantic import BaseModel, ValidationError
+from requests.structures import CaseInsensitiveDict
 
 from core.translation_provider.nm_api.nxm_id import NxmModId
 from core.utilities.filesystem import extract_file_paths
@@ -595,7 +596,7 @@ class NexusModsApi(ProviderApi):
             res = req.Response()
             res.status_code = cffi_res.status_code
             res._content = cffi_res.content
-            res.headers = req.structures.CaseInsensitiveDict(cffi_res.headers)
+            res.headers = CaseInsensitiveDict(cffi_res.headers)
             res.url = cffi_res.url
 
             Cache.save_to_cache(cache_file_path, res)
