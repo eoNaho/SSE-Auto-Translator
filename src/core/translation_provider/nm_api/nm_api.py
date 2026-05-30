@@ -610,11 +610,19 @@ class NexusModsApi(ProviderApi):
 
         return available_translations
 
-    def get_sso_key(self) -> str:
+    def get_sso_key(
+        self,
+        url_callback: Optional[Any] = None,
+    ) -> str:
         """
         Initializes SSO process and waits for API key from server.
 
         Follows instructions from here: https://github.com/Nexus-Mods/sso-integration-demo
+
+        Args:
+            url_callback: Optional callable that receives the SSO URL as a string.
+                          When provided, the URL is passed to the callback instead of
+                          opening the system browser.
         """
 
         res_data: dict[str, Any]
@@ -642,12 +650,16 @@ class NexusModsApi(ProviderApi):
         res_data = json.loads(response)
         token: str = res_data["data"]["connection_token"]  # type: ignore  # noqa: F841
 
-        self.log.debug("Opening page in Web Browser...")
         url = f"https://www.nexusmods.com/sso?id={uuid}&application={self.APP_SLUG}"
-        webbrowser.open(url)
+        if url_callback is not None:
+            self.log.debug("Passing SSO URL to callback...")
+            url_callback(url)
+        else:
+            self.log.debug("Opening page in Web Browser...")
+            webbrowser.open(url)
 
         self.log.info("Waiting for User to sign in...")
-        connection.settimeout(600)  # Timeout of 5 minutes
+        connection.settimeout(600)  # Timeout of 10 minutes
         response = connection.recv()
         if isinstance(response, bytes):
             response = response.decode()

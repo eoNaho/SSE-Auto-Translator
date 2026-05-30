@@ -28,47 +28,54 @@
 <context>
     <name>ApiSetup</name>
     <message>
-        <location filename="src/ui/widgets/api_setup.py" line="45"/>
+        <location filename="src/ui/widgets/api_setup.py" line="151"/>
         <source>In order to get translations from Nexus Mods this tool needs access to the Nexus Mods API. You can setup access by two methods: insert API key manually or via SSO (Single-Sign-On).</source>
         <translation>Um Übersetzungen von Nexus Mods herunterladen zu können, benötigt dieses Tool Zugang zur Nexus Mods API. Du kannst diesen Zugang auf zwei Weisen einrichten: API-Schlüssel manuell eingeben oder über Anmeldung im Browser (Single-Sign-On).</translation>
     </message>
     <message>
-        <location filename="src/ui/widgets/api_setup.py" line="67"/>
+        <location filename="src/ui/widgets/api_setup.py" line="173"/>
+        <location filename="src/ui/widgets/api_setup.py" line="203"/>
+        <location filename="src/ui/widgets/api_setup.py" line="211"/>
         <source>Click here to login to Nexus Mods via browser</source>
         <translation>Hier klicken, um dich im Browser bei Nexus Mods anzumelden</translation>
     </message>
     <message>
-        <location filename="src/ui/widgets/api_setup.py" line="83"/>
+        <location filename="src/ui/widgets/api_setup.py" line="181"/>
+        <source>Waiting for login...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/ui/widgets/api_setup.py" line="224"/>
         <source>Single-Sign-On (browser)</source>
         <translation>Single-Sign-On (Browser)</translation>
     </message>
     <message>
-        <location filename="src/ui/widgets/api_setup.py" line="93"/>
+        <location filename="src/ui/widgets/api_setup.py" line="234"/>
         <source>Insert your API key</source>
         <translation>API-Schlüssel eingeben</translation>
     </message>
     <message>
-        <location filename="src/ui/widgets/api_setup.py" line="97"/>
+        <location filename="src/ui/widgets/api_setup.py" line="238"/>
         <source>Check API key</source>
         <translation>API-Schlüssel überprüfen</translation>
     </message>
     <message>
-        <location filename="src/ui/widgets/api_setup.py" line="110"/>
+        <location filename="src/ui/widgets/api_setup.py" line="251"/>
         <source>API key is valid!</source>
         <translation>API-Schlüssel ist gültig!</translation>
     </message>
     <message>
-        <location filename="src/ui/widgets/api_setup.py" line="115"/>
+        <location filename="src/ui/widgets/api_setup.py" line="256"/>
         <source>API key is invalid!</source>
         <translation>Der API-Schlüssel ist ungültig!</translation>
     </message>
     <message>
-        <location filename="src/ui/widgets/api_setup.py" line="76"/>
+        <location filename="src/ui/widgets/api_setup.py" line="195"/>
         <source>Successfully logged into Nexus Mods</source>
         <translation>Erfolgreich bei Nexus Mods angemeldet</translation>
     </message>
     <message>
-        <location filename="src/ui/widgets/api_setup.py" line="119"/>
+        <location filename="src/ui/widgets/api_setup.py" line="260"/>
         <source>Manual Setup</source>
         <translation>Manuelle Einrichtung</translation>
     </message>
@@ -1155,24 +1162,6 @@ Abhängig von der Übersetzer-API kann dies zu unerwarteten Kosten führen.</num
     </message>
 </context>
 <context>
-    <name>JsonDataView</name>
-    <message>
-        <location filename="src/ui/widgets/json_data_view.old/json_data_view.py" line="45"/>
-        <source>Expand all</source>
-        <translation>Alle aufklappen</translation>
-    </message>
-    <message>
-        <location filename="src/ui/widgets/json_data_view.old/json_data_view.py" line="51"/>
-        <source>Collapse all</source>
-        <translation>Alle zuklappen</translation>
-    </message>
-    <message>
-        <location filename="src/ui/widgets/json_data_view.old/json_data_view.py" line="58"/>
-        <source>Copy</source>
-        <translation>Kopieren</translation>
-    </message>
-</context>
-<context>
     <name>KeyLineEdit</name>
     <message>
         <location filename="core-lib/src/cutleast_core_lib/ui/widgets/key_edit.py" line="50"/>
@@ -2169,7 +2158,7 @@ Auf &quot;Mehr Details&quot; klicken, um den verwendeten Filter anzusehen.</tran
         <translation>Log anzeigen</translation>
     </message>
     <message>
-        <location filename="src/ui/statusbar.py" line="111"/>
+        <location filename="src/ui/statusbar.py" line="114"/>
         <source>API: Hourly: {0} | Daily: {1}</source>
         <translation>API: Stündlich: {0} | Täglich: {1}</translation>
     </message>
@@ -2903,6 +2892,65 @@ Auf &quot;Mehr Details&quot; klicken, um den verwendeten Filter anzusehen.</tran
         <location filename="src/core/downloader/worker.py" line="155"/>
         <source>Installing translation...</source>
         <translation>Wird installiert...</translation>
+    </message>
+</context>
+<context>
+    <name>_SsoWaitDialog</name>
+    <message>
+        <location filename="src/ui/widgets/api_setup.py" line="72"/>
+        <source>Nexus Mods Login</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/ui/widgets/api_setup.py" line="82"/>
+        <source>Open the link below in your browser and log in to Nexus Mods.
+This dialog will close automatically once you are logged in.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/ui/widgets/api_setup.py" line="94"/>
+        <source>Generating login URL...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/ui/widgets/api_setup.py" line="97"/>
+        <source>Copy</source>
+        <translation type="unfinished">Kopieren</translation>
+    </message>
+    <message>
+        <location filename="src/ui/widgets/api_setup.py" line="102"/>
+        <source>Waiting for login URL...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/ui/widgets/api_setup.py" line="106"/>
+        <source>Cancel</source>
+        <translation type="unfinished">Abbrechen</translation>
+    </message>
+    <message>
+        <location filename="src/ui/widgets/api_setup.py" line="113"/>
+        <source>Waiting for you to log in via the browser...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/ui/widgets/api_setup.py" line="116"/>
+        <source>Login successful!</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/ui/widgets/api_setup.py" line="120"/>
+        <source>Login failed: </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/ui/widgets/api_setup.py" line="121"/>
+        <source>Close</source>
+        <translation type="unfinished">Schließen</translation>
+    </message>
+    <message>
+        <location filename="src/ui/widgets/api_setup.py" line="126"/>
+        <source>Copied!</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
